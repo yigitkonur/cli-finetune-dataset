@@ -1,78 +1,101 @@
-#### Introduction
+weighted, category-balanced dataset builder for LLM fine-tuning. takes a directory of JSONL conversation files, samples from each category according to configurable weights, and outputs a single shuffled dataset. two scripts, zero dependencies beyond pandas.
 
-Welcome to the `data-preparation-for-fine-tuning` project, a robust and versatile Python toolkit designed for the meticulous preparation and comprehensive analysis of datasets from JSONL files. Our tools, `dataset-chooser.py` and `dataset-evaluator.py`, are not just scripts but powerful instruments in your data science arsenal. They enable users to homogenize datasets based on pre-specified weights for each category, particularly focusing on assistant responses. This feature is especially beneficial for fine-tuning machine learning models, ensuring the dataset aligns perfectly with your specific needs and biases are minimized.
-
-#### JSONL File Format
-
-Our scripts work with datasets in JSONL format. Each line in a JSONL file is a valid JSON object. Here's a glimpse of what our dataset might look like:
-
-```jsonl
-{"messages": [{"role": "system", "content": "Classify..."}, {"role": "user", "content": "saas..."}, {"role": "assistant", "content": "History"}]}
-{"messages": [{"role": "system", "content": "Classify..."}, {"role": "user", "content": "diskussionsrunden..."}, {"role": "assistant", "content": "Retail"}]}
-{"messages": [{"role": "system", "content": "Classify..."}, {"role": "user", "content": "polis..."}, {"role": "assistant", "content": "Consumer Electronics"}]}
+```bash
+python dataset-chooser.py
 ```
 
-#### Installation and Setup
+[![python](https://img.shields.io/badge/python-3-93450a.svg?style=flat-square)](https://www.python.org/)
+[![license](https://img.shields.io/badge/license-MIT-grey.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 
-1. **Clone the Repository:**
-   ```
-   git clone https://github.com/yourusername/data-preparation-for-fine-tuning.git
-   cd data-preparation-for-fine-tuning
-   ```
-   
-2. **Dependencies:**
-   Python 3.6+ is required. Install dependencies using:
-   ```
-   pip install pandas rich configparser
-   ```
+---
 
-#### Configuration
+## what it does
 
-1. **config.ini File:**
-   Create this in the root directory. Modify paths and weights to suit your dataset:
-   ```ini
-   [Paths]
-   jsonl_directory = /path/to/jsonl/files
-   output_file = /path/to/output/dataset.jsonl
+you have a pile of JSONL files with OpenAI chat-format conversations, split across categories. you want a single fine-tuning dataset where each category contributes a controlled proportion. this does that.
 
-   [Weights]
-   category_weights = {
-       "Category1": 0.05,
-       ...
-   }
+- **parallel file loading** — reads all JSONL files concurrently via thread pool
+- **weighted sampling** — each category gets `total_examples * weight` rows. oversamples with replacement if source data is smaller than target
+- **category extraction** — uses the first assistant message's content as the category label
+- **shuffled output** — final dataset is shuffled and written as JSONL
+- **evaluation script** — inspects the output, counts category distribution, renders a terminal table
 
-   [Settings]
-   total_examples = 1000000
-   ```
+## install
 
-#### Usage
+```bash
+pip install pandas rich
+```
 
-1. **Dataset Preparation (`dataset-chooser.py`):**
-   Reads, shuffles, and categorizes JSONL files. Tailor your dataset for specific modeling needs.
-   ```
-   python dataset-chooser.py
-   ```
+`rich` is only needed for the evaluator's terminal output. the builder only needs `pandas`.
 
-2. **Dataset Analysis (`dataset-evaluator.py`):**
-   Analyzes the prepared dataset, providing insightful metrics and distributions.
-   ```
-   python dataset-evaluator.py
-   ```
-![CleanShot 2024-01-01 at 17 52 05@2x](https://github.com/yigitkonur/data-preparation-for-fine-tuning/assets/9989650/ee8bb83e-1ef1-4fb7-a167-ba9098406da6)
+## configure
 
+edit `config.ini`:
 
-#### Use Cases
+```ini
+[Paths]
+jsonl_directory = /path/to/your/jsonl/files
+output_file = /path/to/your/output/dataset.jsonl
 
-- **Model Training:** Prepare balanced or weighted datasets for training machine learning models, ensuring diverse representation across categories.
-- **Data Analysis:** Gain insights into the composition of your datasets, identifying prevalent themes or gaps in data.
-- **Custom Dataset Creation:** Generate datasets tailored to specific research or business needs, focusing on relevant categories.
+[Weights]
+category_weights = {
+    "Category1": 0.05,
+    "Category2": 0.10,
+    "Category3": 0.85
+}
 
-#### Fine-Tuning Models with Homogenized Data
+[Settings]
+total_examples = 1000000
+```
 
-Utilizing `data-preparation-for-fine-tuning`, you can fine-tune machine learning models with data that's been carefully balanced or weighted according to your specifications. This process involves:
+weights should sum to 1.0 (not enforced, but your math will be off otherwise).
 
-1. Defining category weights in `config.ini` to reflect the desired emphasis in your dataset.
-2. Running `dataset-chooser.py` to prepare a dataset that adheres to these weights.
-3. Using the processed dataset to train models, ensuring the data is representative and aligned with your goals.
+## usage
 
-This approach is particularly useful in scenarios where certain categories need more representation or when trying to avoid biases inherent in unbalanced datasets.
+### build the dataset
+
+```bash
+python dataset-chooser.py
+```
+
+reads every `.jsonl` file in `jsonl_directory`, extracts categories from assistant messages, samples according to weights, writes the result to `output_file`.
+
+### inspect the result
+
+```bash
+python dataset-evaluator.py
+```
+
+reads the output file, counts unique assistant responses, shows a formatted table with counts and percentages.
+
+## input format
+
+each JSONL file should have one JSON object per line, OpenAI chat format:
+
+```jsonl
+{"messages": [{"role": "user", "content": "..."}, {"role": "assistant", "content": "CategoryName"}]}
+```
+
+the first `assistant` message's `content` is used as the category label. this must match a key in `category_weights`.
+
+## configuration reference
+
+| section | key | description |
+|:---|:---|:---|
+| `[Paths]` | `jsonl_directory` | directory to scan for `.jsonl` input files |
+| `[Paths]` | `output_file` | path for the output dataset |
+| `[Weights]` | `category_weights` | JSON object mapping category names to float weights |
+| `[Settings]` | `total_examples` | target total rows in the output |
+
+both scripts read `config.ini` from the current working directory.
+
+## project structure
+
+```
+dataset-chooser.py      — builds the weighted dataset
+dataset-evaluator.py    — inspects category distribution in the output
+config.ini              — paths, weights, target size
+```
+
+## license
+
+MIT
