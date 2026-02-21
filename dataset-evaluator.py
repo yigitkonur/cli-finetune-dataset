@@ -1,12 +1,39 @@
 import json
+import argparse
 import pandas as pd
 from rich.console import Console
 from rich.table import Table
 import configparser
 
-# Read configuration file
-config = configparser.ConfigParser()
-config.read('config.ini')
+# ---------------------------------------------------------------------------
+# cli-finetune-dataset  |  dataset-evaluator
+# Inspects category distribution of a fine-tuning JSONL dataset.
+# ---------------------------------------------------------------------------
+
+def build_arg_parser():
+    parser = argparse.ArgumentParser(
+        prog="dataset-evaluator",
+        description=(
+            "cli-finetune-dataset: dataset evaluator. "
+            "Reads the output JSONL produced by dataset-chooser, counts "
+            "unique assistant responses per category, and renders a "
+            "formatted terminal table with counts and percentages."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "Examples:\n"
+            "  python dataset-evaluator.py\n"
+            "  python dataset-evaluator.py --config my-config.ini\n"
+        ),
+    )
+    parser.add_argument(
+        "--config",
+        default="config.ini",
+        metavar="FILE",
+        help="path to the INI configuration file (default: config.ini)",
+    )
+    return parser
+
 
 # Function to read JSONL file and convert to DataFrame
 def read_jsonl_to_dataframe(file_path):
@@ -62,6 +89,12 @@ def display_report_with_rich(report_df):
 
 # Main script execution
 if __name__ == "__main__":
+    args = build_arg_parser().parse_args()
+
+    # Read configuration file
+    config = configparser.ConfigParser()
+    config.read(args.config)
+
     # Replace with the path to your final JSONL file
     final_jsonl_file = config.get('Paths', 'output_file')
 

@@ -1,12 +1,39 @@
 import json
 import os
+import argparse
 import pandas as pd
 from concurrent.futures import ThreadPoolExecutor
 import configparser
 
-# Read configuration file
-config = configparser.ConfigParser()
-config.read('config.ini')
+# ---------------------------------------------------------------------------
+# cli-finetune-dataset  |  dataset-chooser
+# Weighted, category-balanced JSONL dataset builder for LLM fine-tuning.
+# ---------------------------------------------------------------------------
+
+def build_arg_parser():
+    parser = argparse.ArgumentParser(
+        prog="dataset-chooser",
+        description=(
+            "cli-finetune-dataset: weighted, category-balanced JSONL dataset "
+            "builder for LLM fine-tuning. Reads JSONL conversation files, "
+            "samples from each category according to configurable weights, "
+            "and writes a single shuffled output dataset."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "Examples:\n"
+            "  python dataset-chooser.py\n"
+            "  python dataset-chooser.py --config my-config.ini\n"
+        ),
+    )
+    parser.add_argument(
+        "--config",
+        default="config.ini",
+        metavar="FILE",
+        help="path to the INI configuration file (default: config.ini)",
+    )
+    return parser
+
 
 # Function to read and shuffle JSONL files
 def read_and_shuffle_jsonl(file_path):
@@ -48,6 +75,12 @@ def load_and_shuffle_data(directory):
 
 # Main script execution
 if __name__ == "__main__":
+    args = build_arg_parser().parse_args()
+
+    # Read configuration file
+    config = configparser.ConfigParser()
+    config.read(args.config)
+
     # Replace with the path to your JSONL files directory
     jsonl_files_directory = config.get('Paths', 'jsonl_directory')
     all_data_df = load_and_shuffle_data(jsonl_files_directory)

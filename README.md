@@ -2,6 +2,8 @@ weighted, category-balanced dataset builder for LLM fine-tuning. takes a directo
 
 ```bash
 python dataset-chooser.py
+python dataset-chooser.py --config my-config.ini   # custom config path
+python dataset-evaluator.py --help                  # show all options
 ```
 
 [![python](https://img.shields.io/badge/python-3-93450a.svg?style=flat-square)](https://www.python.org/)
@@ -25,7 +27,7 @@ you have a pile of JSONL files with OpenAI chat-format conversations, split acro
 pip install pandas rich
 ```
 
-`rich` is only needed for the evaluator's terminal output. the builder only needs `pandas`.
+`rich` is only needed for the evaluator's terminal output. `dataset-chooser` only needs `pandas`.
 
 ## configure
 
@@ -55,6 +57,7 @@ weights should sum to 1.0 (not enforced, but your math will be off otherwise).
 
 ```bash
 python dataset-chooser.py
+python dataset-chooser.py --config path/to/config.ini
 ```
 
 reads every `.jsonl` file in `jsonl_directory`, extracts categories from assistant messages, samples according to weights, writes the result to `output_file`.
@@ -63,6 +66,7 @@ reads every `.jsonl` file in `jsonl_directory`, extracts categories from assista
 
 ```bash
 python dataset-evaluator.py
+python dataset-evaluator.py --config path/to/config.ini
 ```
 
 reads the output file, counts unique assistant responses, shows a formatted table with counts and percentages.
@@ -91,8 +95,8 @@ both scripts read `config.ini` from the current working directory.
 ## project structure
 
 ```
-dataset-chooser.py      — builds the weighted dataset
-dataset-evaluator.py    — inspects category distribution in the output
+dataset-chooser.py      — builds the weighted dataset  (prog: dataset-chooser)
+dataset-evaluator.py    — inspects category distribution in the output  (prog: dataset-evaluator)
 config.ini              — paths, weights, target size
 ```
 
